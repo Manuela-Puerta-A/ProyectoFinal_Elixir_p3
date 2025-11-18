@@ -35,6 +35,7 @@ defmodule Dominio.Participante do
         {:error, mensaje}
     end
   end
+  
     # Valida que el correo contenga @
   defp validar_correo(correo) do
     if String.contains?(correo, "@") do
@@ -61,5 +62,26 @@ defmodule Dominio.Participante do
       habilidades_actualizadas = [habilidad | participante.habilidades]
       {:ok, %{participante | habilidades: habilidades_actualizadas}}
     end
+  end
+
+  @doc """
+  Verifica si el participante es mentor
+  """
+  def es_mentor?(participante) do
+    participante.rol == :mentor
+  end
+
+  @doc """
+  Verifica si el participante tiene equipo
+  """
+  def tiene_equipo?(participante) do
+    participante.equipo != nil
+  end
+
+  # Función privada para generar ID único
+  defp generar_id() do
+    :crypto.strong_rand_bytes(6)
+    |> Base.encode16()
+    |> String.downcase()
   end
 end
