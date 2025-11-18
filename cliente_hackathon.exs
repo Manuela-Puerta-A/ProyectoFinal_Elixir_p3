@@ -368,7 +368,7 @@ defmodule ClienteHackathon do
   end
 
   defp manejar_chat_remoto(canal) do
-    nombre = IO.gets("\n Ingresa tu nombre para el chat: ") |> String.trim()
+    nombre = IO.gets("\n Ingresa tu tematica para el chat: ") |> String.trim()
 
     send(@servidor_remoto, {self(), :unirse_chat, canal, nombre})
 
