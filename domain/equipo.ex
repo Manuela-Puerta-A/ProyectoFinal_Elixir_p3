@@ -53,3 +53,18 @@ defmodule Dominio.Equipo do
       {:ok, %{equipo | miembros: miembros_actualizados}}
     end
   end
+
+  @doc """
+  Lista todos los miembros del equipo
+  """
+  def listar_miembros(equipo) do
+    equipo.miembros
+  end
+
+  @doc """
+  Cuenta la cantidad de miembros
+  """
+  def contar_miembros(equipo) do
+    length(equipo.miembros)
+  end
+end
