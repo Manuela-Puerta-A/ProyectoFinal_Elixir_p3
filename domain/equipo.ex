@@ -28,3 +28,28 @@ defmodule Dominio.Equipo do
       fecha_creacion: DateTime.utc_now()
     }
   end
+
+    @doc """
+  Agrega un miembro al equipo
+  """
+  def agregar_miembro(equipo, nombre_miembro) do
+    # Verificar que el miembro no esté ya en el equipo
+    if nombre_miembro in equipo.miembros do
+      {:error, "Este participante ya está en el equipo"}
+    else
+      miembros_actualizados = [nombre_miembro | equipo.miembros]
+      {:ok, %{equipo | miembros: miembros_actualizados}}
+    end
+  end
+
+  @doc """
+  Elimina un miembro del equipo
+  """
+  def remover_miembro(equipo, nombre_miembro) do
+    if nombre_miembro == equipo.lider do
+      {:error, "No se puede remover al líder del equipo"}
+    else
+      miembros_actualizados = List.delete(equipo.miembros, nombre_miembro)
+      {:ok, %{equipo | miembros: miembros_actualizados}}
+    end
+  end
