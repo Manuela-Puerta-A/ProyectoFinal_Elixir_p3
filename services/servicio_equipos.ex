@@ -17,8 +17,43 @@ defmodule Servicios.ServicioEquipos do
     Process.register(pid, @nombre_servicio)
     {:ok, pid}
   end
+  # Ciclo principal del servicio
+  defp ciclo() do
+    receive do
+      {remitente, :crear, nombre, tema, lider} ->
+        resultado = crear_equipo(nombre, tema, lider)
+        send(remitente, {:equipo_creado, resultado})
+        ciclo()
 
+      {remitente, :listar} ->
+        equipos = Almacenamiento.listar_equipos()
+        send(remitente, {:lista_equipos, equipos})
+        ciclo()
 
+      {remitente, :obtener, nombre_equipo} ->
+        equipo = Almacenamiento.obtener_equipo(nombre_equipo)
+        send(remitente, {:info_equipo, equipo})
+        ciclo()
+
+      {remitente, :agregar_miembro, nombre_equipo, nombre_miembro} ->
+        resultado = agregar_miembro_a_equipo(nombre_equipo, nombre_miembro)
+        send(remitente, {:miembro_agregado, resultado})
+        ciclo()
+
+      {remitente, :remover_miembro, nombre_equipo, nombre_miembro} ->
+        resultado = remover_miembro_de_equipo(nombre_equipo, nombre_miembro)
+        send(remitente, {:miembro_removido, resultado})
+        ciclo()
+
+      {remitente, :cambiar_estado, nombre_equipo, nuevo_estado} ->
+        resultado = cambiar_estado_equipo(nombre_equipo, nuevo_estado)
+        send(remitente, {:estado_cambiado, resultado})
+        ciclo()
+
+      :detener ->
+        :ok
+    end
+  end
   defp crear_equipo(nombre, tema, lider) do
     # Verificar si ya existe un equipo con ese nombre
     case Almacenamiento.obtener_equipo(nombre) do
