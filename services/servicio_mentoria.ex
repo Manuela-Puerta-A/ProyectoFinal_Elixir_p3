@@ -18,6 +18,39 @@ defmodule Servicios.ServicioMentoria do
     {:ok, pid}
   end
 
+  # Ciclo principal
+  defp ciclo() do
+    receive do
+      {remitente, :registrar, nombre, correo, especialidad} ->
+        resultado = registrar_mentor(nombre, correo, especialidad)
+        send(remitente, {:mentor_registrado, resultado})
+        ciclo()
+
+      {remitente, :listar} ->
+        mentores = Almacenamiento.listar_mentores()
+        send(remitente, {:lista_mentores, mentores})
+        ciclo()
+
+      {remitente, :obtener, nombre} ->
+        mentor = Almacenamiento.obtener_mentor(nombre)
+        send(remitente, {:info_mentor, mentor})
+        ciclo()
+
+      {remitente, :asignar_equipo, nombre_mentor, nombre_equipo} ->
+        resultado = asignar_equipo_a_mentor(nombre_mentor, nombre_equipo)
+        send(remitente, {:equipo_asignado, resultado})
+        ciclo()
+
+      {remitente, :dar_retroalimentacion, nombre_mentor, nombre_equipo, comentario} ->
+        resultado = dar_retroalimentacion(nombre_mentor, nombre_equipo, comentario)
+        send(remitente, {:retroalimentacion_dada, resultado})
+        ciclo()
+
+      :detener ->
+        :ok
+    end
+  end
+
   defp registrar_mentor(nombre, correo, especialidad) do
     case Almacenamiento.obtener_mentor(nombre) do
       nil ->
@@ -127,4 +160,3 @@ defmodule Servicios.ServicioMentoria do
     end
   end
 end
-
