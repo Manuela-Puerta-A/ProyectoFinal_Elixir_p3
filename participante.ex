@@ -35,4 +35,31 @@ defmodule Dominio.Participante do
         {:error, mensaje}
     end
   end
+    # Valida que el correo contenga @
+  defp validar_correo(correo) do
+    if String.contains?(correo, "@") do
+      :ok
+    else
+      {:error, "El correo debe contener el caracter @"}
+    end
+  end
+
+  @doc """
+  Asigna un equipo al participante
+  """
+  def asignar_equipo(participante, nombre_equipo) do
+    %{participante | equipo: nombre_equipo}
+  end
+
+  @doc """
+  Agrega una habilidad al participante
+  """
+  def agregar_habilidad(participante, habilidad) do
+    if habilidad in participante.habilidades do
+      {:error, "Ya tienes esta habilidad registrada"}
+    else
+      habilidades_actualizadas = [habilidad | participante.habilidades]
+      {:ok, %{participante | habilidades: habilidades_actualizadas}}
+    end
+  end
 end
