@@ -39,4 +39,94 @@ defmodule Dominio.Proyecto do
       fecha_actualizacion: DateTime.utc_now()
     }
   end
+
+  @doc """
+  Actualiza los detalles del proyecto (título y descripción)
+  """
+  def actualizar_detalles(proyecto, titulo, descripcion) do
+    %{proyecto |
+      titulo: titulo,
+      descripcion: descripcion,
+      fecha_actualizacion: DateTime.utc_now()
+    }
+  end
+
+  @doc """
+  Sincroniza el estado del equipo con el proyecto
+  """
+  def sincronizar_estado_equipo(proyecto, estado_equipo) do
+    %{proyecto |
+      estado_equipo: estado_equipo,
+      fecha_actualizacion: DateTime.utc_now()
+    }
+  end
+
+  @doc """
+  Agrega un avance al proyecto
+  """
+  def agregar_avance(proyecto, texto_avance) do
+    timestamp = DateTime.utc_now()
+    nuevo_avance = %{
+      texto: texto_avance,
+      fecha: timestamp
+    }
+
+    avances_actualizados = [nuevo_avance | proyecto.avances]
+
+    %{proyecto |
+      avances: avances_actualizados,
+      estado: :en_progreso,
+      fecha_actualizacion: timestamp
+    }
+  end
+
+  @doc """
+  Agrega un suscriptor para recibir notificaciones en tiempo real
+  """
+  def suscribir(proyecto, pid) do
+    if pid in proyecto.suscriptores do
+      proyecto
+    else
+      %{proyecto | suscriptores: [pid | proyecto.suscriptores]}
+    end
+  end
+
+  @doc """
+  Remueve un suscriptor
+  """
+  def desuscribir(proyecto, pid) do
+    suscriptores_actualizados = List.delete(proyecto.suscriptores, pid)
+    %{proyecto | suscriptores: suscriptores_actualizados}
+  end
+
+  @doc """
+  Notifica a todos los suscriptores sobre un cambio
+  """
+  def notificar_suscriptores(proyecto, tipo_evento, datos) do
+    Enum.each(proyecto.suscriptores, fn pid ->
+      if Process.alive?(pid) do
+        send(pid, {:actualizacion_proyecto, tipo_evento, proyecto.nombre_equipo, datos})
+      end
+    end)
+    proyecto
+  end
+
+  @doc """
+  Agrega retroalimentación de un mentor
+  """
+  def agregar_retroalimentacion(proyecto, nombre_mentor, comentario) do
+    timestamp = DateTime.utc_now()
+    nueva_retroalimentacion = %{
+      mentor: nombre_mentor,
+      comentario: comentario,
+      fecha: timestamp
+    }
+
+    retroalimentacion_actualizada = [nueva_retroalimentacion | proyecto.retroalimentacion]
+
+    %{proyecto |
+      retroalimentacion: retroalimentacion_actualizada,
+      fecha_actualizacion: timestamp
+    }
+  end
 end
