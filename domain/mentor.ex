@@ -34,6 +34,7 @@ defmodule Dominio.Mentor do
         {:error, mensaje}
     end
   end
+
     # Valida que el correo contenga @
   defp validar_correo(correo) do
     if String.contains?(correo, "@") do
@@ -53,5 +54,41 @@ defmodule Dominio.Mentor do
       equipos_actualizados = [nombre_equipo | mentor.equipos_asignados]
       {:ok, %{mentor | equipos_asignados: equipos_actualizados}}
     end
+  end
+
+    @doc """
+  Remueve un equipo del mentor
+  """
+  def remover_equipo(mentor, nombre_equipo) do
+    equipos_actualizados = List.delete(mentor.equipos_asignados, nombre_equipo)
+    %{mentor | equipos_asignados: equipos_actualizados}
+  end
+
+  @doc """
+  Cambia la disponibilidad del mentor
+  """
+  def cambiar_disponibilidad(mentor, disponible) do
+    %{mentor | disponible: disponible}
+  end
+
+  @doc """
+  Verifica si el mentor tiene un equipo asignado
+  """
+  def tiene_equipo?(mentor, nombre_equipo) do
+    nombre_equipo in mentor.equipos_asignados
+  end
+
+    @doc """
+  Cuenta cuántos equipos tiene asignados
+  """
+  def contar_equipos(mentor) do
+    length(mentor.equipos_asignados)
+  end
+
+  # Genera ID único
+  defp generar_id() do
+    :crypto.strong_rand_bytes(6)
+    |> Base.encode16()
+    |> String.downcase()
   end
 end
