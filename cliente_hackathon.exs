@@ -350,7 +350,7 @@ defmodule ClienteHackathon do
   end
 
   defp manejar_agregar_avance_remoto(nombre_equipo) do
-    IO.puts("\n=== AGREGAR AVANCE ===")
+    IO.puts("\n AGREGAR AVANCE ")
 
     avance = IO.gets("\n Describe el avance: ") |> String.trim()
 
@@ -554,7 +554,7 @@ defmodule ClienteHackathon do
         IO.puts("\n No existe un proyecto para el equipo '#{nombre_equipo}'\n")
 
       {:info_proyecto, proyecto} ->
-        IO.puts("\n=== ACTUALIZAR PROYECTO ===")
+        IO.puts("\n ACTUALIZAR PROYECTO ")
         IO.puts("\nTítulo actual: #{proyecto.titulo}")
         IO.puts("Descripción actual: #{proyecto.descripcion}\n")
 
@@ -585,7 +585,7 @@ defmodule ClienteHackathon do
 
     receive do
       {:suscripcion_confirmada, {:ok, _msg}} ->
-        IO.puts("\n=== MONITOREO DE PROYECTO ===")
+        IO.puts("\n MONITOREO DE PROYECTO ")
         IO.puts("\nRecibirás notificaciones en tiempo real")
         IO.puts("Presiona Ctrl+C dos veces para detener\n")
 
