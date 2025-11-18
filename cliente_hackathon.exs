@@ -290,3 +290,346 @@ defp manejar_registro_remoto() do
       5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
     end
   end
+
+  defp manejar_unirse_equipo_remoto(nombre_equipo) do
+    nombre = IO.gets("\n Ingresa tu nombre: ") |> String.trim()
+
+    send(@servidor_remoto, {self(), :unirse_equipo, nombre_equipo, nombre})
+
+    receive do
+      {:resultado_unirse, {:ok, msg}} ->
+        IO.puts("\n #{msg}\n")
+
+      {:resultado_unirse, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_ver_proyecto_remoto(nombre_equipo) do
+    send(@servidor_remoto, {self(), :obtener_proyecto, nombre_equipo})
+
+    receive do
+      {:info_proyecto, nil} ->
+        IO.puts("\n No existe un proyecto para el equipo '#{nombre_equipo}'\n")
+
+      {:info_proyecto, proyecto} ->
+        IO.puts("\n=== PROYECTO: #{String.pad_trailing(proyecto.titulo, 23)} ===")
+        IO.puts("\n Equipo: #{proyecto.nombre_equipo}")
+        IO.puts(" Categoría: #{proyecto.categoria}")
+        IO.puts(" Estado: #{proyecto.estado}")
+        IO.puts("\n Descripción:")
+        IO.puts("#{proyecto.descripcion}")
+
+        if length(proyecto.avances) > 0 do
+          IO.puts("\n Avances (#{length(proyecto.avances)}):")
+          Enum.each(proyecto.avances, fn avance ->
+            fecha = Calendar.strftime(avance.fecha, "%Y-%m-%d %H:%M")
+            IO.puts("   [#{fecha}] #{avance.texto}")
+          end)
+        end
+
+        if length(proyecto.retroalimentacion) > 0 do
+          IO.puts("\n Retroalimentación:")
+          Enum.each(proyecto.retroalimentacion, fn retro ->
+            IO.puts("   [#{retro.mentor}]: #{retro.comentario}")
+          end)
+        end
+
+        IO.puts("")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_agregar_avance_remoto(nombre_equipo) do
+    IO.puts("\n=== AGREGAR AVANCE ===")
+
+    avance = IO.gets("\n Describe el avance: ") |> String.trim()
+
+    send(@servidor_remoto, {self(), :agregar_avance, nombre_equipo, avance})
+
+    receive do
+      {:avance_agregado, {:ok, msg}} ->
+        IO.puts("\n #{msg}\n")
+
+      {:avance_agregado, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_chat_remoto(canal) do
+    nombre = IO.gets("\n Ingresa tu nombre para el chat: ") |> String.trim()
+
+    send(@servidor_remoto, {self(), :unirse_chat, canal, nombre})
+
+    receive do
+      {:chat_conectado, :ok} ->
+        IO.puts("\nCHAT: #{String.pad_trailing(canal, 26)} ===")
+        IO.puts("Escribe /salir para volver al menú\n")
+
+        # Registrar proceso principal para comunicación
+        nombre_proceso = String.to_atom("chat_#{:erlang.unique_integer([:positive])}")
+        Process.register(self(), nombre_proceso)
+
+        # Spawn proceso lector
+        pid_lector = spawn(fn -> bucle_lectura_chat(canal, nombre, nombre_proceso) end)
+
+        # Bucle receptor
+        bucle_receptor_chat(canal, nombre, pid_lector, nombre_proceso)
+
+      {:chat_conectado, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp bucle_lectura_chat(canal, nombre, nombre_proceso) do
+    entrada = IO.gets("") |> String.trim()
+
+    if entrada == "/salir" do
+      send(nombre_proceso, :salir_chat)
+      :ok
+    else
+      # Enviar mensaje al servidor
+      send(@servidor_remoto, {self(), :enviar_mensaje_chat, canal, nombre, entrada})
+
+      # Mostrar mensaje propio inmediatamente (sin esperar broadcast)
+      {{_year, _month, _day}, {hour, minute, second}} = :calendar.local_time()
+      timestamp = :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, minute, second]) |> IO.iodata_to_binary()
+      IO.puts("[#{timestamp}] #{nombre}: #{entrada}")
+
+      bucle_lectura_chat(canal, nombre, nombre_proceso)
+    end
+  end
+
+  defp bucle_receptor_chat(canal, nombre, pid_lector, nombre_proceso) do
+    receive do
+      {:mensaje_chat, autor, texto, timestamp} ->
+        # DEBUG: Descomentar para ver todos los mensajes que llegan
+         #IO.puts("[DEBUG] Recibido mensaje - Autor: #{autor}, Mi nombre: #{nombre}, Igual?: #{autor == nombre}")
+
+        # Solo mostrar si NO es nuestro propio mensaje
+        if autor != nombre do
+          IO.puts("[#{timestamp}] #{autor}: #{texto}")
+        end
+        bucle_receptor_chat(canal, nombre, pid_lector, nombre_proceso)
+
+      :salir_chat ->
+        # Matar el proceso lector
+        Process.exit(pid_lector, :kill)
+
+        # Notificar al servidor
+        send(@servidor_remoto, {self(), :salir_chat, canal, nombre})
+
+        receive do
+          {:chat_desconectado, :ok} ->
+            :ok
+        after
+          500 -> :ok
+        end
+
+        # Desregistrar
+        Process.unregister(nombre_proceso)
+
+        IO.puts("\n Saliste del chat '#{canal}'\n")
+        :ok
+    end
+  end
+
+  defp manejar_listar_mentores_remoto() do
+    send(@servidor_remoto, {self(), :listar_mentores})
+
+    receive do
+      {:lista_mentores, mentores} ->
+        if Enum.empty?(mentores) do
+          IO.puts("\n No hay mentores registrados.\n")
+        else
+          IO.puts("\nMENTORES DISPONIBLES \n")
+
+          Enum.each(mentores, fn mentor ->
+            disponible = if mentor.disponible, do: " Disponible", else: " No disponible"
+            IO.puts(" #{mentor.nombre}")
+            IO.puts("    Especialidad: #{mentor.especialidad}")
+            IO.puts("    #{mentor.correo}")
+            IO.puts("   #{disponible}")
+            IO.puts("    Equipos asignados: #{length(mentor.equipos_asignados)}")
+            IO.puts("   " <> String.duplicate("─", 40))
+          end)
+
+          IO.puts("")
+        end
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_activar_equipo_remoto(nombre_equipo) do
+    send(@servidor_remoto, {self(), :activar_equipo, nombre_equipo})
+
+    receive do
+      {:resultado_activar, {:ok, msg}} ->
+        IO.puts("\n #{msg}\n")
+
+      {:resultado_activar, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_desactivar_equipo_remoto(nombre_equipo) do
+    send(@servidor_remoto, {self(), :desactivar_equipo, nombre_equipo})
+
+    receive do
+      {:resultado_desactivar, {:ok, msg}} ->
+        IO.puts("\n #{msg}\n")
+
+      {:resultado_desactivar, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_listar_proyectos_remoto() do
+    send(@servidor_remoto, {self(), :listar_proyectos})
+
+    receive do
+      {:lista_proyectos, proyectos} ->
+        mostrar_lista_proyectos(proyectos, "TODOS LOS PROYECTOS")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_listar_proyectos_activos_remoto() do
+    send(@servidor_remoto, {self(), :listar_proyectos_activos})
+
+    receive do
+      {:lista_proyectos, proyectos} ->
+        mostrar_lista_proyectos(proyectos, "PROYECTOS DE EQUIPOS ACTIVOS")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_listar_proyectos_inactivos_remoto() do
+    send(@servidor_remoto, {self(), :listar_proyectos_inactivos})
+
+    receive do
+      {:lista_proyectos, proyectos} ->
+        mostrar_lista_proyectos(proyectos, "PROYECTOS DE EQUIPOS INACTIVOS")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_listar_proyectos_categoria_remoto(categoria) do
+    send(@servidor_remoto, {self(), :listar_proyectos_categoria, categoria})
+
+    receive do
+      {:lista_proyectos, proyectos} ->
+        mostrar_lista_proyectos(proyectos, "PROYECTOS - CATEGORÍA: #{categoria}")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_actualizar_proyecto_remoto(nombre_equipo) do
+    send(@servidor_remoto, {self(), :obtener_proyecto, nombre_equipo})
+
+    receive do
+      {:info_proyecto, nil} ->
+        IO.puts("\n No existe un proyecto para el equipo '#{nombre_equipo}'\n")
+
+      {:info_proyecto, proyecto} ->
+        IO.puts("\n=== ACTUALIZAR PROYECTO ===")
+        IO.puts("\nTítulo actual: #{proyecto.titulo}")
+        IO.puts("Descripción actual: #{proyecto.descripcion}\n")
+
+        nuevo_titulo = IO.gets("Nuevo título (Enter para mantener): ") |> String.trim()
+        nueva_descripcion = IO.gets("Nueva descripción (Enter para mantener): ") |> String.trim()
+
+        titulo_final = if nuevo_titulo == "", do: proyecto.titulo, else: nuevo_titulo
+        descripcion_final = if nueva_descripcion == "", do: proyecto.descripcion, else: nueva_descripcion
+
+        send(@servidor_remoto, {self(), :actualizar_proyecto, nombre_equipo, titulo_final, descripcion_final})
+
+        receive do
+          {:proyecto_actualizado, {:ok, msg}} ->
+            IO.puts("\n #{msg}\n")
+
+          {:proyecto_actualizado, {:error, msg}} ->
+            IO.puts("\n Error: #{msg}\n")
+        after
+          5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+        end
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_monitorear_proyecto_remoto(nombre_equipo) do
+    send(@servidor_remoto, {self(), :monitorear_proyecto, nombre_equipo})
+
+    receive do
+      {:suscripcion_confirmada, {:ok, _msg}} ->
+        IO.puts("\n=== MONITOREO DE PROYECTO ===")
+        IO.puts("\nRecibirás notificaciones en tiempo real")
+        IO.puts("Presiona Ctrl+C dos veces para detener\n")
+
+        ciclo_monitoreo(nombre_equipo)
+
+      {:suscripcion_confirmada, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp ciclo_monitoreo(nombre_equipo) do
+    receive do
+      {:actualizacion_proyecto, :nuevo_avance, ^nombre_equipo, datos} ->
+        timestamp = datos.fecha |> Calendar.strftime("%H:%M:%S")
+        IO.puts("\n [#{timestamp}] NUEVO AVANCE DETECTADO!")
+        IO.puts("   #{datos.texto}")
+        IO.puts("    Total de avances: #{datos.total_avances}\n")
+        ciclo_monitoreo(nombre_equipo)
+
+      _ ->
+        ciclo_monitoreo(nombre_equipo)
+    after
+      30000 ->
+        IO.puts(" Sin actividad por 30 segundos. Monitoreo activo...")
+        ciclo_monitoreo(nombre_equipo)
+    end
+  end
+
+  defp mostrar_lista_proyectos(proyectos, titulo) do
+    if Enum.empty?(proyectos) do
+      IO.puts("\n No hay proyectos para mostrar.\n")
+    else
+      IO.puts("\n #{String.pad_trailing(titulo, 38)} \n")
+
+      Enum.each(proyectos, fn proyecto ->
+        estado_icono = if proyecto.estado_equipo == :activo, do: "si", else: "no"
+        IO.puts("#{estado_icono} #{proyecto.titulo}")
+        IO.puts("    Equipo: #{proyecto.nombre_equipo}")
+        IO.puts("    Categoría: #{proyecto.categoria}")
+        IO.puts("    Estado: #{proyecto.estado}")
+        IO.puts("    Avances: #{length(proyecto.avances)}")
+        IO.puts("   " <> String.duplicate("─", 40))
+      end)
+
+      IO.puts("")
+    end
+  end
+end
+
+# Iniciar el cliente
+ClienteHackathon.main()
