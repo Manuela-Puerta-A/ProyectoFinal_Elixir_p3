@@ -13,3 +13,18 @@ defmodule Dominio.Equipo do
     :estado,        # :activo, :inactivo
     :fecha_creacion
   ]
+
+  @doc """
+  Crea un nuevo equipo
+  """
+  def nuevo(nombre, tema, lider) do
+    %__MODULE__{
+      id: generar_id(),
+      nombre: nombre,
+      tema: tema,
+      miembros: [lider],
+      lider: lider,
+      estado: :activo,
+      fecha_creacion: DateTime.utc_now()
+    }
+  end
