@@ -47,13 +47,13 @@ defmodule Adaptadores.ProcesadorComandos do
     end
   end
 
-  # /listar proyectos - Listar todos los proyectos
-  defp procesar_comando(["/project ", "proyectos"]) do
+# /listar proyectos - Listar todos los proyectos
+  defp procesar_comando(["/listar", "proyectos"]) do
     {:listar_proyectos, nil}
   end
 
   # /listar proyectos activos - Proyectos de equipos activos
-  defp procesar_comando(["/project ", resto]) do
+  defp procesar_comando(["/listar", resto]) do
     case String.split(resto, " ", parts: 2) do
       ["proyectos", "activos"] ->
         {:listar_proyectos_activos, nil}
@@ -65,7 +65,7 @@ defmodule Adaptadores.ProcesadorComandos do
         {:listar_proyectos_categoria, categoria}
 
       _ ->
-        {:error, "Comando /project  no reconocido"}
+        {:error, "Comando /listar no reconocido"}
     end
   end
 
@@ -213,8 +213,6 @@ COMUNICACIÓN:
   /chat general
         Chat general de la hackathon
 
-  /chat <nombre_tematica>
-        se crea una nueva sala de chat 
 
 MENTORÍA:
   /mentores
