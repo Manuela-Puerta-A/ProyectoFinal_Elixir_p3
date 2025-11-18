@@ -212,8 +212,9 @@ COMUNICACIÓN:
 
   /chat general
         Chat general de la hackathon
-        
 
+  /chat <nombre_tematica>
+        se crea una nueva sala de chat 
 
 MENTORÍA:
   /mentores
