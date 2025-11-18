@@ -57,3 +57,87 @@ defmodule Adaptadores.Almacenamiento do
       Map.get(estado.proyectos, nombre_equipo)
     end)
   end
+   def listar_proyectos() do
+    Agent.get(__MODULE__, fn estado ->
+      Map.values(estado.proyectos)
+    end)
+  end
+
+  #  operaciones participantes
+
+  def guardar_participante(participante) do
+    Agent.update(__MODULE__, fn estado ->
+      participantes = Map.put(estado.participantes, participante.correo, participante)
+      %{estado | participantes: participantes}
+    end)
+  end
+
+  def obtener_participante(correo) do
+    Agent.get(__MODULE__, fn estado ->
+      Map.get(estado.participantes, correo)
+    end)
+  end
+
+  def listar_participantes() do
+    Agent.get(__MODULE__, fn estado ->
+      Map.values(estado.participantes)
+    end)
+  end
+
+  def establecer_participante_actual(participante) do
+    Agent.update(__MODULE__, fn estado ->
+      %{estado | participante_actual: participante}
+    end)
+  end
+
+  def obtener_participante_actual() do
+    Agent.get(__MODULE__, fn estado ->
+      estado.participante_actual
+    end)
+  end
+
+  # ========== OPERACIONES CON MENTORES ==========
+
+  def guardar_mentor(mentor) do
+    Agent.update(__MODULE__, fn estado ->
+      mentores = Map.put(estado.mentores, mentor.nombre, mentor)
+      %{estado | mentores: mentores}
+    end)
+  end
+
+  def obtener_mentor(nombre) do
+    Agent.get(__MODULE__, fn estado ->
+      Map.get(estado.mentores, nombre)
+    end)
+  end
+
+  def listar_mentores() do
+    Agent.get(__MODULE__, fn estado ->
+      Map.values(estado.mentores)
+    end)
+  end
+
+  # operaciones de mensajes
+  def guardar_mensaje(mensaje) do
+    Agent.update(__MODULE__, fn estado ->
+      mensajes = [mensaje | estado.mensajes]
+      %{estado | mensajes: mensajes}
+    end)
+  end
+
+  def obtener_mensajes(canal) do
+    Agent.get(__MODULE__, fn estado ->
+      estado.mensajes
+      |> Enum.filter(fn msg -> msg.canal == canal end)
+      |> Enum.reverse()
+    end)
+  end
+
+  def obtener_mensajes_generales() do
+    Agent.get(__MODULE__, fn estado ->
+      estado.mensajes
+      |> Enum.filter(fn msg -> msg.canal == "general" end)
+      |> Enum.reverse()
+    end)
+  end
+end
