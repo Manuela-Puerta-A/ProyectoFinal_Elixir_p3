@@ -239,4 +239,59 @@ defmodule ServidorHackathon do
     end
   end
 
+  # ========== FUNCIONES AUXILIARES ==========
+
+  defp log_peticion(pid_cliente, accion) do
+    timestamp = obtener_timestamp()
+    IO.puts("[#{timestamp}]  Cliente #{inspect(pid_cliente)}: #{accion}")
+  end
+
+  defp obtener_timestamp() do
+    {{_year, _month, _day}, {hour, minute, second}} = :calendar.local_time()
+    :io_lib.format("~2..0B:~2..0B:~2..0B", [hour, minute, second])
+    |> IO.iodata_to_binary()
+  end
+
+  defp registrar_cliente_chat(estado, canal, pid_cliente, nombre_usuario) do
+    clientes_canal = Map.get(estado.clientes_chat, canal, [])
+    nuevos_clientes = [{pid_cliente, nombre_usuario} | clientes_canal]
+    nuevos_clientes_chat = Map.put(estado.clientes_chat, canal, nuevos_clientes)
+    %{estado | clientes_chat: nuevos_clientes_chat}
+  end
+
+  defp desregistrar_cliente_chat(estado, canal, pid_cliente) do
+    clientes_canal = Map.get(estado.clientes_chat, canal, [])
+    nuevos_clientes = Enum.reject(clientes_canal, fn {pid, _nombre} -> pid == pid_cliente end)
+    nuevos_clientes_chat = Map.put(estado.clientes_chat, canal, nuevos_clientes)
+    %{estado | clientes_chat: nuevos_clientes_chat}
+  end
+
+  defp broadcast_chat(estado, canal, autor, texto, remitente_pid) do
+    timestamp = obtener_timestamp()
+    clientes_canal = Map.get(estado.clientes_chat, canal, [])
+
+    # Enviar mensajes a todos los clientes (incluso remotos)
+    Enum.each(clientes_canal, fn {pid, _nombre} ->
+      # No enviar al remitente
+      if pid != remitente_pid do
+        # Usar try/catch para manejar PIDs remotos o muertos
+        try do
+          send(pid, {:mensaje_chat, autor, texto, timestamp})
+        catch
+          :error, _ -> :ok
+        end
+      end
+    end)
+
+    estado
+  end
+
+  defp notificar_avance_a_monitores(_estado, _nombre_equipo, _texto_avance) do
+    # Placeholder para futuras notificaciones
+    :ok
+  end
 end
+
+# Iniciar el servidor
+ServidorHackathon.main()
+
