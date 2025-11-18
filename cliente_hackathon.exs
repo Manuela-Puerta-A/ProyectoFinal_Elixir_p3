@@ -1,3 +1,6 @@
+# cliente_hackathon.exs
+# CLIENTE DE LA HACKATHON CODE4FUTURE
+
 # Cargar el procesador de comandos
 Code.require_file("adapters/procesador_comandos.ex", __DIR__)
 
@@ -10,7 +13,7 @@ defmodule ClienteHackathon do
   alias Adaptadores.ProcesadorComandos
 
   # CONFIGURACIÓN - Modificar con la IP del servidor
-  @servidor_nodo :"servidor@192.168.1.58"
+  @servidor_nodo :"servidor@192.168.1.61"
   @servidor_remoto {:hackathon_server, @servidor_nodo}
 
   def main() do
@@ -141,7 +144,10 @@ defmodule ClienteHackathon do
         ciclo_principal()
     end
   end
-defp manejar_registro_remoto() do
+
+  # ========== MANEJADORES DE COMANDOS REMOTOS ==========
+
+  defp manejar_registro_remoto() do
     IO.puts("\n REGISTRO DE PARTICIPANTE ")
 
     nombre = IO.gets("\nNombre completo: ") |> String.trim()
