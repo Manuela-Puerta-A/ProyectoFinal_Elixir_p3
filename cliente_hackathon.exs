@@ -13,7 +13,7 @@ defmodule ClienteHackathon do
   alias Adaptadores.ProcesadorComandos
 
   # CONFIGURACIÓN - Modificar con la IP del servidor
-  @servidor_nodo :"servidor@192.168.1.58"
+  @servidor_nodo :"servidor@10.71.98.250"
   @servidor_remoto {:hackathon_server, @servidor_nodo}
 
   def main() do

@@ -212,6 +212,7 @@ COMUNICACIÓN:
 
   /chat general
         Chat general de la hackathon
+        
 
 
 MENTORÍA:
