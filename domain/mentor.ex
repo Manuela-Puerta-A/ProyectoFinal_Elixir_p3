@@ -34,4 +34,24 @@ defmodule Dominio.Mentor do
         {:error, mensaje}
     end
   end
+    # Valida que el correo contenga @
+  defp validar_correo(correo) do
+    if String.contains?(correo, "@") do
+      :ok
+    else
+      {:error, "El correo debe contener el caracter @"}
+    end
+  end
+
+  @doc """
+  Asigna un equipo al mentor
+  """
+  def asignar_equipo(mentor, nombre_equipo) do
+    if nombre_equipo in mentor.equipos_asignados do
+      {:error, "Este equipo ya está asignado"}
+    else
+      equipos_actualizados = [nombre_equipo | mentor.equipos_asignados]
+      {:ok, %{mentor | equipos_asignados: equipos_actualizados}}
+    end
+  end
 end
