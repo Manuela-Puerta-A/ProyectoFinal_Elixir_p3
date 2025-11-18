@@ -180,7 +180,7 @@ GESTIÓN DE PROYECTOS:
         Crear proyecto para un equipo
         Ejemplo: /crear proyecto Innovadores
 
- /project <equipo>
+ /proyecto <equipo>
         Ver detalles del proyecto de un equipo
 
   /actualizar proyecto <equipo>
