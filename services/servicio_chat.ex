@@ -16,6 +16,31 @@ defmodule Servicios.ServicioChat do
     Process.register(pid, @nombre_servicio)
     {:ok, pid}
   end
+    @doc """
+  Ciclo principal del chat
+  """
+  defp ciclo() do
+    receive do
+      {remitente, :enviar_mensaje, canal, autor, texto} ->
+        resultado = guardar_mensaje(canal, autor, texto)
+        send(remitente, {:mensaje_enviado, resultado})
+        ciclo()
+
+      {remitente, :obtener_mensajes, canal} ->
+        mensajes = Almacenamiento.obtener_mensajes(canal)
+        send(remitente, {:mensajes, mensajes})
+        ciclo()
+
+      {remitente, :anuncio_general, texto} ->
+        # Mensaje del sistema en canal general
+        resultado = guardar_mensaje("general", "Sistema", texto)
+        send(remitente, {:anuncio_enviado, resultado})
+        ciclo()
+
+      :detener ->
+        :ok
+    end
+  end
 #funciones privadas
 
   defp guardar_mensaje(canal, autor, texto) do
