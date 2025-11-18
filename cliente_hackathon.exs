@@ -1,3 +1,6 @@
+# cliente_hackathon.exs
+# CLIENTE DE LA HACKATHON CODE4FUTURE
+
 # Cargar el procesador de comandos
 Code.require_file("adapters/procesador_comandos.ex", __DIR__)
 
@@ -141,7 +144,8 @@ defmodule ClienteHackathon do
         ciclo_principal()
     end
   end
-defp manejar_registro_remoto() do
+
+  defp manejar_registro_remoto() do
     IO.puts("\n REGISTRO DE PARTICIPANTE ")
 
     nombre = IO.gets("\nNombre completo: ") |> String.trim()
