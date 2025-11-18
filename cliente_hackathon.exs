@@ -13,7 +13,7 @@ defmodule ClienteHackathon do
   alias Adaptadores.ProcesadorComandos
 
   # CONFIGURACIÓN - Modificar con la IP del servidor
-  @servidor_nodo :"servidor@192.168.1.61"
+  @servidor_nodo :"servidor@192.168.1.58"
   @servidor_remoto {:hackathon_server, @servidor_nodo}
 
   def main() do
@@ -31,7 +31,7 @@ defmodule ClienteHackathon do
     case Node.connect(@servidor_nodo) do
       true ->
         IO.puts(" Conectado exitosamente al servidor")
-        IO.puts(" Escribe /ayuda para ver los comandos disponibles\n")
+        IO.puts(" Escribe /help para ver los comandos disponibles\n")
         ciclo_principal()
 
       false ->
