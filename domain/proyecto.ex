@@ -129,4 +129,38 @@ defmodule Dominio.Proyecto do
       fecha_actualizacion: timestamp
     }
   end
+
+  @doc """
+  Marca el proyecto como completado
+  """
+  def marcar_completado(proyecto) do
+    %{proyecto |
+      estado: :completado,
+      fecha_actualizacion: DateTime.utc_now()
+    }
+  end
+
+  @doc """
+  Obtiene el último avance registrado
+  """
+  def ultimo_avance(proyecto) do
+    case proyecto.avances do
+      [] -> nil
+      [ultimo | _] -> ultimo
+    end
+  end
+  
+  @doc """
+  Cuenta cuántos avances tiene el proyecto
+  """
+  def contar_avances(proyecto) do
+    length(proyecto.avances)
+  end
+
+  # Genera ID único
+  defp generar_id() do
+    :crypto.strong_rand_bytes(8)
+    |> Base.encode16()
+    |> String.downcase()
+  end
 end
