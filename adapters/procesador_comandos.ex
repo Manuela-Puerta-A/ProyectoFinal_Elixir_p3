@@ -212,6 +212,8 @@ COMUNICACIÓN:
 
   /chat general
         Chat general de la hackathon
+  /chat equipo <tematica>
+        chat para crear sala tematica
 
 
 MENTORÍA:
