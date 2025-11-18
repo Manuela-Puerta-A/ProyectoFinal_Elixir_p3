@@ -76,4 +76,167 @@ defmodule ServidorHackathon do
 
     IO.puts(" Datos de ejemplo cargados")
   end
+
+  defp bucle_servidor(estado) do
+    receive do
+
+      {pid_cliente, :registrar_participante, nombre, correo, rol} ->
+        log_peticion(pid_cliente, "Registrar participante: #{nombre}")
+        resultado = ServicioParticipantes.solicitar_registrar(nombre, correo, rol)
+        send(pid_cliente, {:respuesta_registro, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_participantes} ->
+        log_peticion(pid_cliente, "Listar participantes")
+        participantes = ServicioParticipantes.solicitar_listar()
+        send(pid_cliente, {:lista_participantes, participantes})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_equipos} ->
+        log_peticion(pid_cliente, "Listar equipos")
+        equipos = ServicioEquipos.solicitar_listar()
+        send(pid_cliente, {:lista_equipos, equipos})
+        bucle_servidor(estado)
+
+      {pid_cliente, :crear_equipo, nombre, tema, lider} ->
+        log_peticion(pid_cliente, "Crear equipo: #{nombre}")
+        resultado = ServicioEquipos.solicitar_crear(nombre, tema, lider)
+        send(pid_cliente, {:equipo_creado, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :unirse_equipo, nombre_equipo, nombre_miembro} ->
+        log_peticion(pid_cliente, "Unirse a equipo: #{nombre_equipo}")
+        resultado = ServicioEquipos.solicitar_agregar_miembro(nombre_equipo, nombre_miembro)
+        send(pid_cliente, {:resultado_unirse, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :obtener_equipo, nombre_equipo} ->
+        log_peticion(pid_cliente, "Obtener info equipo: #{nombre_equipo}")
+        equipo = ServicioEquipos.solicitar_obtener(nombre_equipo)
+        send(pid_cliente, {:info_equipo, equipo})
+        bucle_servidor(estado)
+
+      {pid_cliente, :activar_equipo, nombre_equipo} ->
+        log_peticion(pid_cliente, "Activar equipo: #{nombre_equipo}")
+        resultado = ServicioEquipos.solicitar_cambiar_estado(nombre_equipo, :activo)
+        send(pid_cliente, {:resultado_activar, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :desactivar_equipo, nombre_equipo} ->
+        log_peticion(pid_cliente, "Desactivar equipo: #{nombre_equipo}")
+        resultado = ServicioEquipos.solicitar_cambiar_estado(nombre_equipo, :inactivo)
+        send(pid_cliente, {:resultado_desactivar, resultado})
+        bucle_servidor(estado)
+
+      # ========== GESTIÓN DE PROYECTOS ==========
+      {pid_cliente, :crear_proyecto, nombre_equipo, titulo, descripcion, categoria} ->
+        log_peticion(pid_cliente, "Crear proyecto para: #{nombre_equipo}")
+        resultado = ServicioProyectos.solicitar_crear(nombre_equipo, titulo, descripcion, categoria)
+        send(pid_cliente, {:proyecto_creado, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :obtener_proyecto, nombre_equipo} ->
+        log_peticion(pid_cliente, "Obtener proyecto: #{nombre_equipo}")
+        proyecto = ServicioProyectos.solicitar_obtener(nombre_equipo)
+        send(pid_cliente, {:info_proyecto, proyecto})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_proyectos} ->
+        log_peticion(pid_cliente, "Listar todos los proyectos")
+        proyectos = ServicioProyectos.solicitar_listar()
+        send(pid_cliente, {:lista_proyectos, proyectos})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_proyectos_activos} ->
+        log_peticion(pid_cliente, "Listar proyectos activos")
+        proyectos = ServicioProyectos.solicitar_listar_por_estado(:activo)
+        send(pid_cliente, {:lista_proyectos, proyectos})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_proyectos_inactivos} ->
+        log_peticion(pid_cliente, "Listar proyectos inactivos")
+        proyectos = ServicioProyectos.solicitar_listar_por_estado(:inactivo)
+        send(pid_cliente, {:lista_proyectos, proyectos})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_proyectos_categoria, categoria} ->
+        log_peticion(pid_cliente, "Listar proyectos categoría: #{categoria}")
+        proyectos = ServicioProyectos.solicitar_listar_por_categoria(categoria)
+        send(pid_cliente, {:lista_proyectos, proyectos})
+        bucle_servidor(estado)
+
+      {pid_cliente, :agregar_avance, nombre_equipo, texto_avance} ->
+        log_peticion(pid_cliente, "Agregar avance a: #{nombre_equipo}")
+        resultado = ServicioProyectos.solicitar_agregar_avance(nombre_equipo, texto_avance)
+        send(pid_cliente, {:avance_agregado, resultado})
+
+        # Notificar a todos los clientes monitoreando este proyecto
+        notificar_avance_a_monitores(estado, nombre_equipo, texto_avance)
+        bucle_servidor(estado)
+
+      {pid_cliente, :actualizar_proyecto, nombre_equipo, titulo, descripcion} ->
+        log_peticion(pid_cliente, "Actualizar proyecto: #{nombre_equipo}")
+        resultado = ServicioProyectos.solicitar_actualizar_detalles(nombre_equipo, titulo, descripcion)
+        send(pid_cliente, {:proyecto_actualizado, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :monitorear_proyecto, nombre_equipo} ->
+        log_peticion(pid_cliente, "Monitorear proyecto: #{nombre_equipo}")
+        resultado = ServicioProyectos.solicitar_suscribir(nombre_equipo, pid_cliente)
+        send(pid_cliente, {:suscripcion_confirmada, resultado})
+        bucle_servidor(estado)
+
+      # ========== GESTIÓN DE MENTORES ==========
+      {pid_cliente, :registrar_mentor, nombre, correo, especialidad} ->
+        log_peticion(pid_cliente, "Registrar mentor: #{nombre}")
+        resultado = ServicioMentoria.solicitar_registrar(nombre, correo, especialidad)
+        send(pid_cliente, {:mentor_registrado, resultado})
+        bucle_servidor(estado)
+
+      {pid_cliente, :listar_mentores} ->
+        log_peticion(pid_cliente, "Listar mentores")
+        mentores = ServicioMentoria.solicitar_listar()
+        send(pid_cliente, {:lista_mentores, mentores})
+        bucle_servidor(estado)
+
+      # ========== SISTEMA DE CHAT ==========
+      {pid_cliente, :unirse_chat, canal, nombre_usuario} ->
+        log_peticion(pid_cliente, "Unirse a chat: #{canal}")
+        nuevo_estado = registrar_cliente_chat(estado, canal, pid_cliente, nombre_usuario)
+        send(pid_cliente, {:chat_conectado, :ok})
+
+        # LOG en servidor
+        IO.puts(IO.ANSI.green() <> "[CHAT]  #{nombre_usuario} se unió al canal '#{canal}'" <> IO.ANSI.reset())
+
+        # Notificar a otros en el canal
+        broadcast_chat(nuevo_estado, canal, "Sistema", " #{nombre_usuario} se ha unido al chat", pid_cliente)
+        bucle_servidor(nuevo_estado)
+
+      {pid_cliente, :enviar_mensaje_chat, canal, autor, texto} ->
+        # LOG en servidor
+        timestamp = obtener_timestamp()
+        IO.puts(IO.ANSI.cyan() <> "[#{timestamp}][CHAT:#{canal}] #{autor}: #{texto}" <> IO.ANSI.reset())
+
+        # Broadcast a TODOS excepto al que envió el mensaje
+        broadcast_chat(estado, canal, autor, texto, pid_cliente)
+        bucle_servidor(estado)
+
+      {pid_cliente, :salir_chat, canal, nombre_usuario} ->
+        log_peticion(pid_cliente, "Salir de chat: #{canal}")
+        nuevo_estado = desregistrar_cliente_chat(estado, canal, pid_cliente)
+
+        # LOG en servidor
+        IO.puts(IO.ANSI.yellow() <> "[CHAT]  #{nombre_usuario} salió del canal '#{canal}'" <> IO.ANSI.reset())
+
+        broadcast_chat(nuevo_estado, canal, "Sistema", " #{nombre_usuario} ha salido del chat", pid_cliente)
+        send(pid_cliente, {:chat_desconectado, :ok})
+        bucle_servidor(nuevo_estado)
+
+      # ========== MENSAJE DESCONOCIDO ==========
+      mensaje ->
+        IO.puts("  Mensaje no reconocido: #{inspect(mensaje)}")
+        bucle_servidor(estado)
+    end
+  end
+
 end
