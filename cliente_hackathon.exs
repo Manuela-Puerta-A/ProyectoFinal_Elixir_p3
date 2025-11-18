@@ -141,3 +141,152 @@ defmodule ClienteHackathon do
         ciclo_principal()
     end
   end
+defp manejar_registro_remoto() do
+    IO.puts("\n REGISTRO DE PARTICIPANTE ")
+
+    nombre = IO.gets("\nNombre completo: ") |> String.trim()
+    correo = IO.gets("Correo electrónico: ") |> String.trim()
+
+    # Registrar como participante
+    rol = :participante
+    send(@servidor_remoto, {self(), :registrar_participante, nombre, correo, rol})
+
+    receive do
+      {:respuesta_registro, {:ok, _participante}} ->
+        IO.puts("\n Registro exitoso. ¡Bienvenido #{nombre}!\n")
+
+      {:respuesta_registro, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_registro_mentor_remoto() do
+    IO.puts("\nREGISTRO DE MENTOR ")
+
+    nombre = IO.gets("\nNombre completo: ") |> String.trim()
+    correo = IO.gets("Correo electrónico: ") |> String.trim()
+    especialidad = IO.gets("Especialidad: ") |> String.trim()
+
+    send(@servidor_remoto, {self(), :registrar_mentor, nombre, correo, especialidad})
+
+    receive do
+      {:mentor_registrado, {:ok, _mentor}} ->
+        IO.puts("\n Mentor registrado exitosamente. ¡Bienvenido #{nombre}!\n")
+
+      {:mentor_registrado, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_listar_participantes_remoto() do
+    send(@servidor_remoto, {self(), :listar_participantes})
+
+    receive do
+      {:lista_participantes, participantes} ->
+        if Enum.empty?(participantes) do
+          IO.puts("\n No hay participantes registrados.\n")
+        else
+          IO.puts("\nPARTICIPANTES REGISTRADOS \n")
+
+          Enum.each(participantes, fn p ->
+            equipo = if p.equipo, do: p.equipo, else: "Sin equipo"
+            IO.puts(" #{p.nombre}")
+            IO.puts("    #{p.correo}")
+            IO.puts("    Equipo: #{equipo}")
+            IO.puts("   " <> String.duplicate("─", 40))
+          end)
+
+          IO.puts("")
+        end
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_listar_equipos_remoto() do
+    send(@servidor_remoto, {self(), :listar_equipos})
+
+    receive do
+      {:lista_equipos, equipos} ->
+        if Enum.empty?(equipos) do
+          IO.puts("\n No hay equipos registrados.\n")
+        else
+          IO.puts("\n=== EQUIPOS REGISTRADOS ===\n")
+
+          Enum.each(equipos, fn equipo ->
+            estado_icono = if equipo.estado == :activo, do: "si", else: "no"
+            IO.puts("#{estado_icono} #{equipo.nombre}")
+            IO.puts("    Tema: #{equipo.tema}")
+            IO.puts("    Líder: #{equipo.lider}")
+            IO.puts("    Miembros (#{length(equipo.miembros)}):")
+
+            Enum.each(equipo.miembros, fn miembro ->
+              IO.puts("      • #{miembro}")
+            end)
+
+            IO.puts("   " <> String.duplicate("─", 40))
+          end)
+
+          IO.puts("")
+        end
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_crear_equipo_remoto(%{nombre: nombre, tema: tema}) do
+    lider = IO.gets("\n Ingresa tu nombre (líder del equipo): ") |> String.trim()
+
+    send(@servidor_remoto, {self(), :crear_equipo, nombre, tema, lider})
+
+    receive do
+      {:equipo_creado, {:ok, _equipo}} ->
+        IO.puts("\n Equipo '#{nombre}' creado exitosamente!")
+        IO.puts("    Tema: #{tema}")
+        IO.puts("    Líder: #{lider}")
+        IO.puts("\n Ahora puedes crear el proyecto con: /crear proyecto #{nombre}\n")
+
+      {:equipo_creado, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
+
+  defp manejar_crear_proyecto_remoto(%{nombre_equipo: nombre_equipo}) do
+    IO.puts("\nCREAR PROYECTO PARA EQUIPO: #{nombre_equipo} ===")
+
+    titulo = IO.gets("\nTítulo del proyecto: ") |> String.trim()
+    descripcion = IO.gets("Descripción: ") |> String.trim()
+
+    IO.puts("\nCategorías disponibles:")
+    IO.puts("1. Educacion")
+    IO.puts("2. Ambiental")
+    IO.puts("3. Social")
+    categoria_opcion = IO.gets("Selecciona (1-3): ") |> String.trim()
+
+    categoria = case categoria_opcion do
+      "1" -> "Educacion"
+      "2" -> "Ambiental"
+      "3" -> "Social"
+      _ -> "Social"
+    end
+
+    send(@servidor_remoto, {self(), :crear_proyecto, nombre_equipo, titulo, descripcion, categoria})
+
+    receive do
+      {:proyecto_creado, {:ok, _proyecto}} ->
+        IO.puts("\n Proyecto creado exitosamente!")
+        IO.puts("    Título: #{titulo}")
+        IO.puts("    Categoría: #{categoria}\n")
+
+      {:proyecto_creado, {:error, msg}} ->
+        IO.puts("\n Error: #{msg}\n")
+    after
+      5000 -> IO.puts("\n Timeout: el servidor no respondió\n")
+    end
+  end
