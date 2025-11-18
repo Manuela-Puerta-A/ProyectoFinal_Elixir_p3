@@ -34,7 +34,7 @@ defmodule Dominio.Mentor do
         {:error, mensaje}
     end
   end
-  
+
     # Valida que el correo contenga @
   defp validar_correo(correo) do
     if String.contains?(correo, "@") do
@@ -76,5 +76,19 @@ defmodule Dominio.Mentor do
   """
   def tiene_equipo?(mentor, nombre_equipo) do
     nombre_equipo in mentor.equipos_asignados
+  end
+
+    @doc """
+  Cuenta cuántos equipos tiene asignados
+  """
+  def contar_equipos(mentor) do
+    length(mentor.equipos_asignados)
+  end
+
+  # Genera ID único
+  defp generar_id() do
+    :crypto.strong_rand_bytes(6)
+    |> Base.encode16()
+    |> String.downcase()
   end
 end
