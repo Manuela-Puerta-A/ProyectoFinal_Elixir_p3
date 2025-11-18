@@ -67,4 +67,18 @@ defmodule Dominio.Equipo do
   def contar_miembros(equipo) do
     length(equipo.miembros)
   end
+
+  @doc """
+  Cambia el estado del equipo
+  """
+  def cambiar_estado(equipo, nuevo_estado) do
+    %{equipo | estado: nuevo_estado}
+  end
+
+  # Genera un ID único para el equipo
+  defp generar_id() do
+    :crypto.strong_rand_bytes(6)
+    |> Base.encode16()
+    |> String.downcase()
+  end
 end
